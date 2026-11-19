@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WA Broadcast</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>WA Broadcast</h1>
+    <span id="status-badge" class="badge">memuat…</span>
+  </header>
+
+  <nav>
+    <button class="tab active" data-tab="contacts">Kontak</button>
+    <button class="tab" data-tab="send">Kirim Pesan</button>
+    <button class="tab" data-tab="history">Riwayat</button>
+  </nav>
+
+  <main>
+    <!-- KONTAK -->
+    <section id="tab-contacts" class="panel active">
+      <div class="card">
+        <h2>Impor kontak</h2>
+        <p class="hint">Unggah file <b>.vcf</b> (ekspor kontak dari HP: Kontak → Ekspor) atau <b>.csv</b> (Google Contacts / Excel dengan kolom <code>nama</code>, <code>nomor</code>, <code>tag</code> opsional).</p>
+        <div class="row">
+          <input type="file" id="import-file" accept=".csv,.vcf,.txt">
+          <input type="text" id="import-tag" placeholder="Tag untuk kontak ini (opsional)">
+          <button id="import-btn">Impor</button>
+        </div>
+        <div id="import-result" class="hint"></div>
+      </div>
+
+      <div class="card">
+        <h2>Tambah manual</h2>
+        <form id="add-form" class="row">
+          <input name="name" placeholder="Nama">
+          <input name="phone" placeholder="Nomor (08xx / +62xx)" required>
+          <input name="tags" placeholder="Tag (pisah koma)">
+          <button type="submit">Tambah</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="row between">
+          <h2>Daftar kontak <span id="contact-count" class="muted"></span></h2>
+          <input type="search" id="contact-search" placeholder="Cari nama / nomor / tag">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nama</th><th>Nomor</th><th>Tag</th><th>Status</th><th></th></tr></thead>
+            <tbody id="contact-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- KIRIM -->
+    <section id="tab-send" class="panel">
+      <div class="card">
+        <h2>1. Pilih penerima</h2>
+        <div class="row">
+          <input type="search" id="recipient-search" placeholder="Filter nama / nomor / tag">
+          <select id="recipient-tag"><option value="">Semua tag</option></select>
+          <button type="button" id="select-all" class="secondary">Pilih semua (terfilter)</button>
+          <button type="button" id="select-none" class="secondary">Kosongkan</button>
+        </div>
+        <div id="recipient-list" class="recipient-list"></div>
+        <div class="hint"><b id="selected-count">0</b> kontak dipilih. Kontak yang berhenti berlangganan (opt-out) tidak akan dikirimi.</div>
+      </div>
+
+      <div class="card">
+        <h2>2. Tulis pesan</h2>
+        <div class="row">
+          <label><input type="radio" name="mode" value="template" checked> Template (disetujui Meta)</label>
+          <label><input type="radio" name="mode" value="text"> Teks bebas</label>
+        </div>
+
+        <div id="mode-template">
+          <div class="row">
+            <select id="template-select"><option value="">Memuat template…</option></select>
+            <button type="button" id="reload-templates" class="secondary">Muat ulang</button>
+          </div>
+          <pre id="template-preview" class="preview"></pre>
+          <div id="template-header-wrap" hidden>
+            <label>URL gambar header <input type="url" id="template-header-image" placeholder="https://…/gambar.jpg"></label>
+          </div>
+          <div id="template-params"></div>
+          <p class="hint">Gunakan <code>{nama}</code> di isian variabel untuk diganti nama kontak otomatis.</p>
+        </div>
+
+        <div id="mode-text" hidden>
+          <textarea id="text-body" rows="5" placeholder="Halo {nama}, …"></textarea>
+          <p class="hint warn">Teks bebas hanya terkirim ke kontak yang <b>membalas/mengirim pesan ke Anda dalam 24 jam terakhir</b> (aturan WhatsApp). Untuk pesan pertama atau promosi, gunakan Template.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>3. Kirim</h2>
+        <button id="send-btn" class="primary">Kirim pesan</button>
+        <div id="send-result" class="hint"></div>
+      </div>
+    </section>
+
+    <!-- RIWAYAT -->
+    <section id="tab-history" class="panel">
+      <div class="card">
+        <div class="row between">
+          <h2>Riwayat pengiriman</h2>
+          <button id="refresh-history" class="secondary">Muat ulang</button>
+        </div>
+        <div id="history-summary" class="summary"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Waktu</th><th>Penerima</th><th>Pesan</th><th>Status</th></tr></thead>
+            <tbody id="history-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
