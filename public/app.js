@@ -91,7 +91,7 @@ $('#import-btn').addEventListener('click', async () => {
   if (!file) return alert('Pilih file dulu');
   const text = await file.text();
   const extraTag = $('#import-tag').value.trim();
-  let rows = /BEGIN:VCARD/i.test(text) ? parseVcf(text) : parseCsv(text);
+  let rows = /BEGIN:VCARD/i.test(text) ? parseVcf(text, $('#import-note-tag').checked) : parseCsv(text);
   if (extraTag) rows = rows.map(r => ({ ...r, tags: [r.tags, extraTag].filter(Boolean).join(',') }));
   if (!rows.length) return ($('#import-result').textContent = 'Tidak ada nomor yang ditemukan di file.');
   try {
@@ -102,13 +102,13 @@ $('#import-btn').addEventListener('click', async () => {
   } catch (err) { $('#import-result').textContent = 'Gagal: ' + err.message; }
 });
 
-function parseVcf(text) {
+function parseVcf(text, useNoteAsTag = false) {
   const rows = [];
   const unfolded = text.replace(/\r?\n[ \t]/g, '');
   for (const card of unfolded.split(/BEGIN:VCARD/i).slice(1)) {
     const lines = card.split(/\r?\n/);
-    let name = '';
-    const phones = [];
+    let name = '', note = '';
+    const phones = [], tags = [];
     for (const line of lines) {
       const idx = line.indexOf(':');
       if (idx < 0) continue;
@@ -117,8 +117,13 @@ function parseVcf(text) {
       else if (!name && key.startsWith('N') && !key.startsWith('NOTE') && !key.startsWith('NICKNAME')) {
         name = decodeVcfValue(key, val).split(';').filter(Boolean).reverse().join(' ');
       } else if (key.startsWith('TEL') || /\.TEL/.test(key)) phones.push(val);
+      else if (key.startsWith('CATEGORIES')) tags.push(...decodeVcfValue(key, val).split(','));
+      else if (key.startsWith('NOTE')) note = decodeVcfValue(key, val).trim();
     }
-    for (const p of phones) rows.push({ name, phone: p });
+    // Opsi: pakai catatan sebagai tag. "Prospek Toko - Semarang" -> tag "Semarang"
+    if (useNoteAsTag && note) tags.push(note.includes(' - ') ? note.split(' - ').pop() : note);
+    const tagStr = tags.map(t => t.trim()).filter(t => t && !/^mycontacts$/i.test(t)).join(',');
+    for (const p of phones) rows.push({ name, phone: p, tags: tagStr });
   }
   return rows;
 }
