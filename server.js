@@ -62,19 +62,58 @@ function handleWebhook(payload) {
   }
 }
 
-// ---------- Auth sederhana untuk dashboard ----------
-app.use((req, res, next) => {
-  const header = req.get('authorization') || '';
-  const [scheme, encoded] = header.split(' ');
-  if (scheme === 'Basic' && encoded) {
-    const [user, ...rest] = Buffer.from(encoded, 'base64').toString().split(':');
-    const pass = rest.join(':');
-    const a = Buffer.from(pass), b = Buffer.from(PASSWORD);
-    if (user === 'admin' && PASSWORD && a.length === b.length && crypto.timingSafeEqual(a, b)) {
-      return next();
-    }
+// ---------- Login dashboard (cookie bertanda tangan) ----------
+const SESSION_KEY = crypto.createHash('sha256').update('wa-broadcast:' + PASSWORD).digest();
+const SESSION_DAYS = 7;
+
+function makeSession() {
+  const exp = Date.now() + SESSION_DAYS * 864e5;
+  const sig = crypto.createHmac('sha256', SESSION_KEY).update(String(exp)).digest('hex');
+  return `${exp}.${sig}`;
+}
+function validSession(token) {
+  const [exp, sig] = String(token || '').split('.');
+  if (!exp || !sig || Number(exp) < Date.now()) return false;
+  const expected = crypto.createHmac('sha256', SESSION_KEY).update(exp).digest('hex');
+  return sig.length === expected.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+}
+function getCookie(req, name) {
+  const m = (req.get('cookie') || '').match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+function passwordOk(input) {
+  const a = Buffer.from(String(input || '')), b = Buffer.from(PASSWORD);
+  return Boolean(PASSWORD) && a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+const loginAttempts = new Map(); // ip -> { count, until }
+app.get('/style.css', (req, res) => res.sendFile(path.join(__dirname, 'public', 'style.css')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.post('/login', express.urlencoded({ extended: false }), (req, res) => {
+  const ip = req.ip;
+  const a = loginAttempts.get(ip) || { count: 0, until: 0 };
+  if (a.until > Date.now()) return res.redirect('/login?err=wait');
+  if (!passwordOk(req.body && req.body.password)) {
+    a.count++;
+    if (a.count >= 5) { a.until = Date.now() + 5 * 60e3; a.count = 0; }
+    loginAttempts.set(ip, a);
+    return res.redirect('/login?err=1');
   }
-  res.set('WWW-Authenticate', 'Basic realm="WA Broadcast"').status(401).send('Login diperlukan');
+  loginAttempts.delete(ip);
+  const secure = req.secure || req.get('x-forwarded-proto') === 'https';
+  res.set('Set-Cookie', `wa_session=${makeSession()}; Path=/; HttpOnly; Max-Age=${SESSION_DAYS * 86400}; ` +
+    (secure ? 'Secure; SameSite=None' : 'SameSite=Lax'));
+  res.redirect('/');
+});
+app.post('/logout', (req, res) => {
+  res.set('Set-Cookie', 'wa_session=; Path=/; HttpOnly; Max-Age=0');
+  res.redirect('/login');
+});
+
+app.use((req, res, next) => {
+  if (validSession(getCookie(req, 'wa_session'))) return next();
+  if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Sesi berakhir, silakan login ulang' });
+  res.redirect('/login');
 });
 
 app.use(express.json({ limit: '5mb' }));

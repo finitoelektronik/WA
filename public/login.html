@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login WA Broadcast</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .login { max-width: 360px; margin: 10vh auto; padding: 0 16px; }
+    .login form { display: flex; flex-direction: column; gap: 10px; }
+    .login input { flex: none; }
+  </style>
+</head>
+<body>
+  <header><h1>WA Broadcast</h1></header>
+  <div class="login">
+    <div class="card">
+      <h2>Masuk ke dashboard</h2>
+      <form method="post" action="/login">
+        <input type="password" name="password" placeholder="Password" autocomplete="current-password" required autofocus>
+        <button type="submit" class="primary">Masuk</button>
+      </form>
+      <p id="err" class="hint warn"></p>
+    </div>
+  </div>
+  <script>
+    const e = new URLSearchParams(location.search).get('err');
+    if (e) document.getElementById('err').textContent =
+      e === 'wait' ? 'Terlalu banyak percobaan. Coba lagi dalam 5 menit.' : 'Password salah.';
+  </script>
+</body>
+</html>

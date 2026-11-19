@@ -52,7 +52,7 @@ Edit `.env`, isi semua nilainya (terutama `DASHBOARD_PASSWORD`), lalu:
 ```bash
 npm start
 ```
-Buka <http://localhost:3000>, login dengan username `admin` dan password dari `.env`.
+Buka <http://localhost:3000>, lalu masuk dengan password dari `.env` (`DASHBOARD_PASSWORD`).
 
 Mau mencoba tanpa mengirim sungguhan? Set `DRY_RUN=true`.
 
